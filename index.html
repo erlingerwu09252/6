@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>重车凭单打印系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 28px;
+            position: relative;
+        }
+        
+        h1:after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(to right, #3498db, #2c3e50);
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 24px;
+            transition: border-color 0.3s;
+            height: 70px;
+        }
+        
+        input::placeholder {
+            font-size: 20px;
+            color: #95a5a6;
+        }
+        
+        input:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            height: 60px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-calculate {
+            background: linear-gradient(to right, #3498db, #2c3e50);
+            flex: 2;
+        }
+        
+        .btn-reset {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+            flex: 1;
+        }
+        
+        .btn-connect {
+            background: linear-gradient(to right, #27ae60, #2ecc71);
+            flex: 1;
+        }
+        
+        .btn-print {
+            background: linear-gradient(to right, #9b59b6, #8e44ad);
+            flex: 1;
+        }
+        
+        .btn-fullscreen {
+            background: linear-gradient(to right, #f39c12, #e67e22);
+            flex: 1;
+        }
+        
+        .btn-weight-ticket {
+            background: linear-gradient(to right, #16a085, #1abc9c);
+            flex: 1;
+        }
+        
+        .btn-scan {
+            background: linear-gradient(to right, #3498db, #2980b9);
+            flex: 1;
+        }
+        
+        .result {
+            margin-top: 30px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .timestamp {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            background: linear-gradient(to right, #3498db, #2c3e50);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 20px;
+        }
+        
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .result-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .highlight {
+            color: #e74c3c;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .print-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #9b59b6;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .print-section:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(to bottom, #9b59b6, #8e44ad);
+        }
+        
+        .print-section h2 {
+            color: #8e44ad;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        
+        .status-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .status-connected {
+            background-color: #2ecc71;
+            box-shadow: 0 0 8px #2ecc71;
+        }
+        
+        .status-disconnected {
+            background-color: #e74c3c;
+        }
+        
+        .status-text {
+            font-weight: 500;
+            font-size: 18px;
+        }
+        
+        .log-container {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .bluetooth-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .bluetooth-connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .bluetooth-disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        /* 扫码界面样式 */
+        .scan-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .scan-container {
+            width: 90%;
+            max-width: 500px;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .scan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .scan-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .close-scan {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #e74c3c;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: #000;
+        }
+        
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .scan-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 70%;
+            border: 4px solid #3498db;
+            border-radius: 10px;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        
+        .scan-instructions {
+            margin-top: 15px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        
+        .scan-result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .scan-result h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .scan-result-data {
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .scan-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-confirm {
+            background: linear-gradient(to right, #27ae60, #2ecc71);
+            flex: 1;
+        }
+        
+        .btn-cancel {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+            flex: 1;
+        }
+        
+        .btn-retry {
+            background: linear-gradient(to right, #3498db, #2980b9);
+            flex: 1;
+        }
+        
+        .status-box {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        .status-active {
+            background: #cce5ff;
+            color: #004085;
+            border: 2px solid #b8daff;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .buttons {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .video-container {
+                height: 300px;
+            }
+            
+            input {
+                font-size: 20px;
+                padding: 16px;
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>重车凭单打印系统</h1>
+        
+        <div class="form-group">
+            <input type="number" id="heavy" placeholder="重车重量 (公斤)" step="0.001" min="0" autofocus>
+        </div>
+        
+        <div class="form-group">
+            <input type="number" id="price" placeholder="单价 (元/斤)" step="0.001" min="0">
+        </div>
+        
+        <div class="form-group">
+            <input type="number" id="light" placeholder="空车重量 (公斤)" step="0.001" min="0">
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-calculate" id="calculateBtn">计算</button>
+            <button class="btn-reset" id="resetBtn">归零 (F1)</button>
+            <button class="btn-weight-ticket" id="weightTicketBtn">重车凭单 (F2)</button>
+            <button class="btn-scan" id="scanBtn">扫码填充数据 (F3)</button>
+            <button class="btn-fullscreen" id="fullscreenBtn">全屏模式</button>
+            <button class="btn-connect" id="connectBtn">连接打印机</button>
+            <button class="btn-print" id="printBtn" disabled>打印结果</button>
+        </div>
+        
+        <div class="result" id="result" style="display: none;">
+            <div class="timestamp" id="timestamp"></div>
+            <div class="result-item">
+                <span class="result-label">重车:</span>
+                <span class="result-value" id="result-heavy">0</span> 公斤
+            </div>
+            <div class="result-item">
+                <span class="result-label">空车:</span>
+                <span class="result-value" id="result-light">0</span> 公斤
+            </div>
+            <div class="result-item">
+                <span class="result-label">净重:</span>
+                <span class="result-value" id="result-net">0</span> 公斤
+            </div>
+            <div class="result-item">
+                <span class="result-label">市斤:</span>
+                <span class="result-value" id="result-jin">0</span> 斤
+            </div>
+            <div class="result-item">
+                <span class="result-label">单价:</span>
+                <span class="result-value" id="result-price">0</span> 元/斤
+            </div>
+            <div class="result-item">
+                <span class="result-label">钱:</span>
+                <span class="result-value highlight" id="result-total">0</span> 元
+            </div>
+        </div>
+        
+        <div class="print-section">
+            <h2>芯烨N160II蓝牙打印机</h2>
+            <div class="status-bar">
+                <div class="status-indicator status-disconnected" id="statusIndicator"></div>
+                <span class="status-text" id="statusText">未连接打印机</span>
+            </div>
+            
+            <div class="bluetooth-status bluetooth-disconnected" id="bluetoothStatus">
+                蓝牙打印机未连接
+            </div>
+            
+            <div class="log-container" id="logContainer">
+                <div class="log-entry">就绪。点击"连接打印机"开始。</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 扫码界面 -->
+    <div class="scan-overlay" id="scanOverlay">
+        <div class="scan-container">
+            <div class="scan-header">
+                <h2 class="scan-title">扫码填充数据</h2>
+                <button class="close-scan" id="closeScanBtn">&times;</button>
+            </div>
+            
+            <div class="video-container">
+                <video id="video" playsinline></video>
+                <div class="scan-frame"></div>
+            </div>
+            
+            <div class="status-box status-ready" id="scanStatus">
+                准备就绪 - 请将二维码对准扫描框
+            </div>
+            
+            <div class="scan-result" id="scanResult">
+                <h4>扫描结果</h4>
+                <div class="scan-result-data" id="scanResultData"></div>
+            </div>
+            
+            <div class="scan-buttons">
+                <button class="btn-retry" id="retryScanBtn">重新扫描</button>
+                <button class="btn-cancel" id="cancelScanBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 蓝牙打印机服务UUID和特征UUID（芯烨N160II）
+        const PRINT_SERVICE_UUID = '000018f0-0000-1000-8000-00805f9b34fb';
+        const PRINT_CHARACTERISTIC_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
+        
+        // 格式化数字显示
+        function formatNumber(num) {
+            if (Number.isInteger(num)) {
+                return num.toString();
+            }
+            return num.toFixed(3).replace(/\.?0+$/, "");
+        }
+
+        // 汉字到GBK编码的映射表
+        const GBK_MAP = {
+            '重': [0xD6, 0xD8], // GBK编码：D6D8
+            '车': [0xB3, 0xB5], // GBK编码：B3B5
+            '空': [0xBF, 0xD5], // GBK编码：BFD5
+            '净': [0xBE, 0xBB], // GBK编码：BEBB
+            '市': [0xCA, 0xD0], // GBK编码：CAD0
+            '斤': [0xBD, 0xEF], // GBK编码：BDEF
+            '单': [0xB5, 0xA5], // GBK编码：B5A5
+            '价': [0xBC, 0xDB], // GBK编码：BCDB
+            '钱': [0xC7, 0xAE], // GBK编码：C7AE
+            '时': [0xCA, 0xB1], // GBK编码：CAB1
+            '间': [0xBC, 0xE4], // GBK编码：BCE4
+            '凭': [0xC6, 0xBD], // GBK编码：C6BD
+            '二': [0xB6, 0xFE], // GBK编码：B6FE
+            '维': [0xCE, 0xAC], // GBK编码：CEAC
+            '码': [0xC2, 0xEB], // GBK编码：C2EB
+            '公': [0xB9, 0xAB], // GBK编码：B9AB
+            '元': [0xD4, 0xAA], // GBK编码：D4AA
+            '克': [0xBF, 0xCB]  // GBK编码：BFCB
+        };
+
+        // 将字符串转换为GBK编码的字节数组
+        function stringToGBK(str) {
+            const bytes = [];
+            for (let i = 0; i < str.length; i++) {
+                const char = str[i];
+                const charCode = str.charCodeAt(i);
+                
+                // ASCII字符直接使用
+                if (charCode <= 127) {
+                    bytes.push(charCode);
+                } 
+                // 特殊字符处理
+                else if (GBK_MAP[char]) {
+                    bytes.push(...GBK_MAP[char]);
+                }
+                // 其他字符使用问号代替
+                else {
+                    bytes.push(0x3F); // 问号
+                }
+            }
+            return new Uint8Array(bytes);
+        }
+
+        // 蓝牙打印机类
+        class BluetoothPrinter {
+            constructor() {
+                this.bluetoothDevice = null;
+                this.bluetoothServer = null;
+                this.bluetoothService = null;
+                this.bluetoothCharacteristic = null;
+                this.logCallback = null;
+                this.statusCallback = null;
+                this.isConnected = false;
+            }
+
+            setLogCallback(callback) {
+                this.logCallback = callback;
+            }
+
+            setStatusCallback(callback) {
+                this.statusCallback = callback;
+            }
+
+            addLog(message) {
+                if (this.logCallback) {
+                    this.logCallback(message);
+                }
+            }
+
+            updatePrinterStatus(isConnected, deviceName = '') {
+                this.isConnected = isConnected;
+                if (this.statusCallback) {
+                    this.statusCallback(isConnected, deviceName);
+                }
+            }
+
+            // 连接蓝牙打印机
+            async connectBluetoothPrinter() {
+                try {
+                    this.addLog("正在寻找蓝牙设备...");
+                    
+                    // 检查浏览器是否支持Web Bluetooth API
+                    if (!navigator.bluetooth) {
+                        throw new Error('您的浏览器不支持Web Bluetooth API。请使用Chrome浏览器。');
+                    }
+                    
+                    // 请求蓝牙设备
+                    const device = await navigator.bluetooth.requestDevice({
+                        filters: [
+                            { name: 'Xprinter' }, // 芯烨打印机常见名称
+                            { namePrefix: 'Xinye' },
+                            { namePrefix: 'N160' },
+                            { services: [PRINT_SERVICE_UUID] } // 通过服务UUID过滤
+                        ],
+                        optionalServices: [PRINT_SERVICE_UUID]
+                    });
+                    
+                    this.addLog(`找到设备: ${device.name || '未命名设备'}`);
+                    
+                    this.updatePrinterStatus(false, "连接中...");
+                    this.addLog("正在连接设备...");
+                    
+                    // 连接到GATT服务器
+                    const server = await device.gatt.connect();
+                    this.bluetoothServer = server;
+                    this.addLog("连接到GATT服务器");
+                    
+                    // 获取打印服务
+                    const service = await server.getPrimaryService(PRINT_SERVICE_UUID);
+                    this.bluetoothService = service;
+                    this.addLog("找到打印服务");
+                    
+                    // 获取打印特征
+                    const characteristic = await service.getCharacteristic(PRINT_CHARACTERISTIC_UUID);
+                    this.bluetoothCharacteristic = characteristic;
+                    this.addLog("找到打印特性");
+                    
+                    this.bluetoothDevice = device;
+                    
+                    this.updatePrinterStatus(true, device.name || '芯烨N160II打印机');
+                    this.addLog("蓝牙打印机连接成功！");
+                    
+                    // 监听断开连接事件
+                    device.addEventListener('gattserverdisconnected', () => this.onDisconnected());
+                    
+                    return true;
+                } catch (error) {
+                    console.error('连接失败:', error);
+                    this.addLog(`连接失败: ${error.message}`);
+                    this.updatePrinterStatus(false);
+                    throw error;
+                }
+            }
+            
+            onDisconnected() {
+                this.addLog("蓝牙连接已断开");
+                this.updatePrinterStatus(false);
+                this.bluetoothDevice = null;
+                this.bluetoothCharacteristic = null;
+                this.bluetoothService = null;
+                this.bluetoothServer = null;
+            }
+            
+            // 生成重车凭单打印内容（包含二维码）
+            generateWeightTicketContent(heavy, price) {
+                const date = new Date();
+                // 修改时间格式：去掉短杠，精确到秒
+                const formattedDate = `${date.getFullYear().toString().slice(-2)}${(date.getMonth() + 1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                
+                // 二维码信息（使用英文避免编码问题）
+                const qrData = JSON.stringify({
+                    type: 'WeightTicket',
+                    heavy: heavy,
+                    price: price,
+                    timestamp: formattedDate,
+                    unit: 'kg'
+                });
+                
+                // 构建打印内容（使用GBK编码）
+                let content = '';
+                
+                // 初始化打印机
+                content += '\x1B\x40'; // ESC @
+                
+                // 设置2倍字体大小
+                content += '\x1D\x21\x22'; // GS ! 22
+                
+                // 设置居中
+                content += '\x1B\x61\x01'; // ESC a 1
+                
+                // 标题（使用GBK编码）
+                content += "重车凭单\r\n\r\n";
+                
+                // 左对齐
+                content += '\x1B\x61\x00'; // ESC a 0
+                
+                // 日期时间
+                content += `${formattedDate}\r\n`;
+                content += `重车: ${formatNumber(heavy)} 公斤\r\n`;
+                content += `单价: ${formatNumber(price)} 元/斤\r\n\r\n`;
+                
+                // 打印二维码（ESC/POS二维码指令）
+                content += '\x1B\x61\x01'; // 居中
+                
+                // 设置二维码大小
+                content += '\x1D\x28\x6B\x03\x00\x31\x43\x07'; // 设置二维码大小
+                // 设置二维码纠错等级
+                content += '\x1D\x28\x6B\x03\x00\x31\x45\x33'; // 设置纠错等级为H
+                // 存储二维码数据
+                content += '\x1D\x28\x6B' + String.fromCharCode(qrData.length + 3) + '\x00\x31\x50\x30' + qrData;
+                // 打印二维码
+                content += '\x1D\x28\x6B\x03\x00\x31\x51\x30';
+                
+                content += '\r\n\r\n';
+                
+                // 走纸
+                content += '\r\n\r\n\r\n\r\n';
+                
+                // 切纸（如果打印机支持）
+                content += '\x1D\x56\x00'; // GS V 0
+                
+                // 转换为GBK编码
+                return stringToGBK(content);
+            }
+            
+            // 生成计算结果打印内容
+            generatePrintContent(calculationResult) {
+                if (!calculationResult) throw new Error('没有可打印的计算结果');
+                
+                const { heavy, light, netWeight, jin, price, total } = calculationResult;
+                const date = new Date();
+                // 修改时间格式：去掉短杠，精确到秒
+                const formattedDate = `${date.getFullYear().toString().slice(-2)}${(date.getMonth() + 1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                
+                let content = '';
+                
+                // 初始化打印机
+                content += '\x1B\x40'; // ESC @
+                
+                // 设置2倍字体大小
+                content += '\x1D\x21\x22'; // GS ! 22
+                
+                // 设置居中
+                content += '\x1B\x61\x01'; // ESC a 1
+                
+                // 标题
+                content += `${formattedDate}\r\n\r\n`;
+                
+                // 左对齐
+                content += '\x1B\x61\x00'; // ESC a 0
+                
+                // 数据行（根据图片格式）
+                content += `重车: ${formatNumber(heavy)} 公斤\r\n`;
+                content += `空车: ${formatNumber(light)} 公斤\r\n`;
+                content += `净重: ${formatNumber(netWeight)} 公斤\r\n`;
+                content += `市斤: ${formatNumber(jin)} 斤\r\n`;
+                content += `单价: ${formatNumber(price)} 元/斤\r\n`;
+                content += `钱: ${total.toFixed(2)}\r\n\r\n`;
+                
+                // 走纸
+                content += '\r\n\r\n\r\n\r\n\r\n\r\n';
+                
+                // 切纸（如果打印机支持）
+                content += '\x1D\x56\x00'; // GS V 0
+                
+                return content;
+            }
+            
+            // 打印重车凭单
+            async printWeightTicket(heavy, price) {
+                if (!this.bluetoothCharacteristic) {
+                    throw new Error('请先连接蓝牙打印机');
+                }
+                
+                if (!heavy || !price) {
+                    throw new Error('请输入重车和单价');
+                }
+                
+                try {
+                    this.addLog("开始打印重车凭单...");
+                    
+                    const printData = this.generateWeightTicketContent(heavy, price);
+                    this.addLog("重车凭单内容已生成");
+                    
+                    this.addLog(`重车凭单数据已编码 (长度: ${printData.length} 字节)`);
+                    
+                    const chunkSize = 20;
+                    for (let i = 0; i < printData.length; i += chunkSize) {
+                        const chunk = printData.slice(i, i + chunkSize);
+                        await this.bluetoothCharacteristic.writeValue(chunk);
+                        this.addLog(`已发送重车凭单数据块: ${i} - ${i + chunk.length}`);
+                    }
+                    
+                    this.addLog("重车凭单打印任务已发送到打印机");
+                    return true;
+                } catch (error) {
+                    console.error('重车凭单打印失败:', error);
+                    this.addLog(`重车凭单打印失败: ${error.message}`);
+                    throw error;
+                }
+            }
+            
+            // 打印计算结果
+            async printResult(calculationResult) {
+                if (!this.bluetoothCharacteristic) {
+                    throw new Error('请先连接蓝牙打印机');
+                }
+                
+                if (!calculationResult) {
+                    throw new Error('请先进行计算');
+                }
+                
+                try {
+                    this.addLog("开始打印...");
+                    
+                    const printContent = this.generatePrintContent(calculationResult);
+                    this.addLog("打印内容已生成");
+                    
+                    const printData = stringToGBK(printContent);
+                    this.addLog(`数据已编码 (长度: ${printData.length} 字节)`);
+                    
+                    const chunkSize = 20;
+                    for (let i = 0; i < printData.length; i += chunkSize) {
+                        const chunk = printData.slice(i, i + chunkSize);
+                        await this.bluetoothCharacteristic.writeValue(chunk);
+                        this.addLog(`已发送数据块: ${i} - ${i + chunk.length}`);
+                    }
+                    
+                    this.addLog("打印任务已发送到打印机");
+                    return true;
+                } catch (error) {
+                    console.error('打印失败:', error);
+                    this.addLog(`打印失败: ${error.message}`);
+                    throw error;
+                }
+            }
+            
+            // 断开连接
+            disconnect() {
+                if (this.bluetoothDevice && this.bluetoothDevice.gatt.connected) {
+                    this.bluetoothDevice.gatt.disconnect();
+                }
+                this.onDisconnected();
+            }
+        }
+
+        // DOM元素引用
+        const heavyInput = document.getElementById('heavy');
+        const priceInput = document.getElementById('price');
+        const lightInput = document.getElementById('light');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const weightTicketBtn = document.getElementById('weightTicketBtn');
+        const connectBtn = document.getElementById('connectBtn');
+        const printBtn = document.getElementById('printBtn');
+        const scanBtn = document.getElementById('scanBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const resultDiv = document.getElementById('result');
+        const timestampDiv = document.getElementById('timestamp');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const logContainer = document.getElementById('logContainer');
+        const bluetoothStatus = document.getElementById('bluetoothStatus');
+        const scanOverlay = document.getElementById('scanOverlay');
+        const videoElement = document.getElementById('video');
+        const closeScanBtn = document.getElementById('closeScanBtn');
+        const scanResult = document.getElementById('scanResult');
+        const scanResultData = document.getElementById('scanResultData');
+        const retryScanBtn = document.getElementById('retryScanBtn');
+        const cancelScanBtn = document.getElementById('cancelScanBtn');
+        const scanStatus = document.getElementById('scanStatus');
+
+        // 初始化蓝牙打印机
+        const printer = new BluetoothPrinter();
+        let calculationResult = null;
+        let canPrint = false;
+        
+        // 设置打印机的回调函数
+        printer.setLogCallback(function(message) {
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        });
+        
+        printer.setStatusCallback(function(isConnected, deviceName) {
+            if (isConnected) {
+                statusIndicator.className = 'status-indicator status-connected';
+                statusText.textContent = deviceName ? `已连接: ${deviceName}` : '已连接';
+                bluetoothStatus.textContent = `已连接到: ${deviceName}`;
+                bluetoothStatus.className = 'bluetooth-status bluetooth-connected';
+                printBtn.disabled = false;
+                connectBtn.textContent = "断开连接";
+            } else {
+                statusIndicator.className = 'status-indicator status-disconnected';
+                statusText.textContent = '未连接打印机';
+                bluetoothStatus.textContent = '蓝牙打印机未连接';
+                bluetoothStatus.className = 'bluetooth-status bluetooth-disconnected';
+                printBtn.disabled = true;
+                connectBtn.textContent = "连接打印机";
+            }
+        });
+
+        // 连接/断开打印机
+        async function togglePrinterConnection() {
+            if (printer.isConnected) {
+                printer.disconnect();
+                printer.addLog("已断开蓝牙连接");
+            } else {
+                try {
+                    await printer.connectBluetoothPrinter();
+                } catch (error) {
+                    alert(`连接失败: ${error.message}`);
+                }
+            }
+        }
+        
+        // 全屏模式切换
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`全屏请求错误: ${err.message}`);
+                });
+                fullscreenBtn.textContent = "退出全屏";
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    fullscreenBtn.textContent = "全屏模式";
+                }
+            }
+        }
+        
+        // 计算功能
+        function calculate() {
+            const heavy = parseFloat(heavyInput.value);
+            const light = parseFloat(lightInput.value);
+            const price = parseFloat(priceInput.value);
+            
+            if (isNaN(heavy) || isNaN(light) || isNaN(price)) {
+                alert("请输入有效的数值！");
+                return;
+            }
+            
+            if (heavy <= light) {
+                alert("重车必须大于空车！");
+                return;
+            }
+            
+            const netWeight = heavy - light;
+            const jin = netWeight * 2;
+            const total = jin * price;
+            
+            calculationResult = {
+                heavy,
+                light,
+                netWeight,
+                jin,
+                price,
+                total
+            };
+            
+            const now = new Date();
+            // 修改时间格式：去掉短杠，精确到秒
+            const timestamp = `${now.getFullYear().toString().slice(-2)}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            
+            timestampDiv.textContent = timestamp;
+            
+            document.getElementById('result-heavy').textContent = formatNumber(heavy);
+            document.getElementById('result-light').textContent = formatNumber(light);
+            document.getElementById('result-net').textContent = formatNumber(netWeight);
+            document.getElementById('result-jin').textContent = formatNumber(jin);
+            document.getElementById('result-price').textContent = formatNumber(price);
+            document.getElementById('result-total').textContent = total.toFixed(2);
+            
+            resultDiv.style.display = 'block';
+            
+            canPrint = true;
+            
+            printer.addLog("计算完成！按回车键可打印结果");
+            
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // 归零功能
+        function resetCalculator() {
+            heavyInput.value = '';
+            priceInput.value = '';
+            lightInput.value = '';
+            
+            resultDiv.style.display = 'none';
+            
+            calculationResult = null;
+            
+            heavyInput.focus();
+            
+            canPrint = false;
+        }
+        
+        // 打印重车凭单
+        async function printWeightTicket() {
+            const heavy = parseFloat(heavyInput.value);
+            const price = parseFloat(priceInput.value);
+            
+            if (isNaN(heavy) || isNaN(price)) {
+                alert("请输入重车和单价！");
+                return;
+            }
+            
+            try {
+                weightTicketBtn.disabled = true;
+                weightTicketBtn.textContent = "打印中...";
+                await printer.printWeightTicket(heavy, price);
+            } catch (error) {
+                alert(`打印失败: ${error.message}`);
+            } finally {
+                weightTicketBtn.disabled = false;
+                weightTicketBtn.textContent = "重车凭单 (F2)";
+            }
+        }
+        
+        // 打印计算结果
+        async function printCalculationResult() {
+            if (!calculationResult) {
+                alert("请先进行计算");
+                return;
+            }
+            
+            try {
+                printBtn.disabled = true;
+                printBtn.textContent = "打印中...";
+                await printer.printResult(calculationResult);
+                
+                canPrint = false;
+            } catch (error) {
+                alert(`打印失败: ${error.message}`);
+            } finally {
+                printBtn.disabled = false;
+                printBtn.textContent = "打印结果";
+            }
+        }
+        
+        // 扫码功能
+        let scannerActive = false;
+        let scanStream = null;
+        let scanData = null;
+        let scanInterval = null;
+        
+        // 开启摄像头扫描
+        async function startScanner() {
+            try {
+                scanOverlay.style.display = 'flex';
+                scannerActive = true;
+                scanResult.style.display = 'none';
+                scanStatus.textContent = '正在请求摄像头权限...';
+                scanStatus.className = 'status-box status-active';
+                
+                // 获取摄像头权限
+                const constraints = {
+                    video: {
+                        facingMode: 'environment', // 优先使用后置摄像头
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                        focusMode: 'continuous' // 启用连续对焦
+                    }
+                };
+                
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                scanStream = stream;
+                videoElement.srcObject = stream;
+                
+                // 等待视频开始播放
+                await new Promise((resolve) => {
+                    videoElement.onloadedmetadata = resolve;
+                    videoElement.play();
+                });
+                
+                scanStatus.textContent = '摄像头已开启 - 请将二维码对准扫描框';
+                scanStatus.className = 'status-box status-active';
+                
+                // 开始扫描
+                scanInterval = setInterval(scanForQRCode, 300); // 降低扫描频率提高准确性
+            } catch (error) {
+                console.error('摄像头访问失败:', error);
+                let errorMessage = '无法访问摄像头: ';
+                
+                switch(error.name) {
+                    case 'NotAllowedError':
+                        errorMessage += '用户拒绝了访问权限请求。请刷新页面重试并允许摄像头访问。';
+                        break;
+                    case 'NotFoundError':
+                        errorMessage += '未找到可用的摄像头设备。';
+                        break;
+                    case 'NotSupportedError':
+                        errorMessage += '当前环境不支持摄像头访问。请使用HTTPS协议访问此页面。';
+                        break;
+                    case 'NotReadableError':
+                        errorMessage += '摄像头正被其他应用程序使用。';
+                        break;
+                    default:
+                        errorMessage += error.message;
+                }
+                
+                scanStatus.textContent = errorMessage;
+                scanStatus.className = 'status-box status-error';
+                closeScanner();
+            }
+        }
+        
+        // 扫描二维码
+        function scanForQRCode() {
+            if (!scannerActive || !videoElement.videoWidth || !videoElement.videoHeight) return;
+            
+            try {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+                
+                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // 使用jsQR解析二维码
+                const code = jsQR(
+                    imageData.data, 
+                    imageData.width, 
+                    imageData.height,
+                    {
+                        inversionAttempts: 'dontInvert', // 不尝试反转
+                        canOverwriteImage: true
+                    }
+                );
+                
+                if (code) {
+                    // 找到二维码
+                    try {
+                        const data = JSON.parse(code.data);
+                        if (data.type === 'WeightTicket') {
+                            // 自动处理扫描到的数据
+                            processScannedData(data);
+                            return;
+                        } else {
+                            scanStatus.textContent = '识别到二维码，但不是重车凭单格式';
+                        }
+                    } catch (e) {
+                        console.log('无效的二维码数据', e);
+                        scanStatus.textContent = '无法解析二维码内容';
+                    }
+                }
+            } catch (error) {
+                console.error('扫描过程中出错:', error);
+            }
+        }
+        
+        // 处理扫描到的数据
+        function processScannedData(data) {
+            // 填充重车和单价
+            heavyInput.value = data.heavy;
+            priceInput.value = data.price;
+            
+            // 清空空车输入框
+            lightInput.value = '';
+            
+            // 将焦点设置到空车输入框
+            lightInput.focus();
+            
+            // 记录日志
+            printer.addLog(`从二维码填充数据: 重车=${data.heavy}kg, 单价=${data.price}元/斤`);
+            
+            // 关闭扫码界面
+            closeScanner();
+        }
+        
+        // 关闭扫描界面
+        function closeScanner() {
+            scannerActive = false;
+            scanOverlay.style.display = 'none';
+            
+            if (scanInterval) {
+                clearInterval(scanInterval);
+                scanInterval = null;
+            }
+            
+            if (scanStream) {
+                scanStream.getTracks().forEach(track => track.stop());
+                scanStream = null;
+            }
+        }
+        
+        // 事件绑定
+        document.addEventListener('DOMContentLoaded', function() {
+            heavyInput.focus();
+            
+            calculateBtn.addEventListener('click', calculate);
+            resetBtn.addEventListener('click', resetCalculator);
+            weightTicketBtn.addEventListener('click', printWeightTicket);
+            connectBtn.addEventListener('click', togglePrinterConnection);
+            printBtn.addEventListener('click', printCalculationResult);
+            scanBtn.addEventListener('click', startScanner);
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+            closeScanBtn.addEventListener('click', closeScanner);
+            retryScanBtn.addEventListener('click', function() {
+                scanResult.style.display = 'none';
+                scanInterval = setInterval(scanForQRCode, 300);
+                scanStatus.textContent = '重新扫描中 - 请将二维码对准扫描框';
+                scanStatus.className = 'status-box status-active';
+            });
+            cancelScanBtn.addEventListener('click', closeScanner);
+            
+            // 输入框回车键事件
+            heavyInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    priceInput.focus();
+                }
+            });
+            
+            priceInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    lightInput.focus();
+                }
+            });
+            
+            lightInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    calculate();
+                }
+            });
+            
+            // 全局键盘事件
+            document.addEventListener('keydown', function(e) {
+                // F1键归零
+                if (e.key === 'F1' || e.keyCode === 112) {
+                    e.preventDefault();
+                    resetCalculator();
+                }
+                
+                // F2键打印重车凭单
+                if (e.key === 'F2' || e.keyCode === 113) {
+                    e.preventDefault();
+                    printWeightTicket();
+                }
+                
+                // F3键扫码填充数据
+                if (e.key === 'F3' || e.keyCode === 114) {
+                    e.preventDefault();
+                    // 如果扫码界面没有显示，则启动扫码
+                    if (scanOverlay.style.display !== 'flex') {
+                        startScanner();
+                    }
+                }
+                
+                // 回车键打印计算结果
+                if (e.key === 'Enter') {
+                    if (canPrint && calculationResult && !printBtn.disabled) {
+                        printCalculationResult();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
